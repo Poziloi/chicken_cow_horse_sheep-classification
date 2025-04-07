@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 import numpy as np
 import joblib
 from tensorflow.keras.models import load_model
-from app.utils.preprocess import preprocess_image
+from preprocess import preprocess_image
 
 app = FastAPI()
 
