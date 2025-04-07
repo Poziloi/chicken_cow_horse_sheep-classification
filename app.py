@@ -6,24 +6,30 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 from streamlit_drawable_canvas import st_canvas
 
-# URL API
+# URL до API
 API_URL = "https://chicken-cow-horse-sheep-classification.onrender.com/predict/"
 
-# Список читаемых меток классов
-CLASS_NAMES = ["chicken", "cow", "horse", "sheep"]
+# Имена классов
+CLASS_NAMES = {
+    "0": "chicken",
+    "1": "cow",
+    "2": "horse",
+    "3": "sheep"
+}
 
 st.title("🐔🐄🐎🐑 Классификация изображений животных")
 
-tab1, tab2 = st.tabs(["📷 Загрузить изображение", "✏️ Нарисовать изображение"])
+tab = st.radio("Выберите режим", ["📷 Загрузить изображение", "✏️ Нарисовать изображение"])
 
 image = None
 
-with tab1:
+if tab == "📷 Загрузить изображение":
     uploaded_file = st.file_uploader("Загрузите изображение", type=["jpg", "jpeg", "png"])
     if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
 
-with tab2:
+elif tab == "✏️ Нарисовать изображение":
+    st.write("Нарисуйте животное белым цветом на черном фоне:")
     canvas_result = st_canvas(
         fill_color="black",
         stroke_width=10,
@@ -32,19 +38,19 @@ with tab2:
         width=256,
         height=256,
         drawing_mode="freedraw",
-        key="canvas",
+        key="canvas_draw",
         update_streamlit=True
     )
 
     if canvas_result.image_data is not None:
-        img = Image.fromarray((canvas_result.image_data).astype("uint8")).convert("RGB")
-        image = img
+        image = Image.fromarray((canvas_result.image_data).astype("uint8")).convert("RGB")
 
+# Отображение изображения
 if image:
     st.image(image, caption="Входное изображение", use_container_width=True)
 
     if st.button("Классифицировать"):
-        # Предобработка: ресайз и преобразование в байты
+        # Предобработка изображения
         img_resized = image.resize((64, 64))
         buffered = BytesIO()
         img_resized.save(buffered, format="PNG")
@@ -57,20 +63,20 @@ if image:
         if response.status_code == 200:
             result = response.json()
 
-            # Получение метки класса
-            predicted = result.get("predicted_class")
-            if isinstance(predicted, int) and 0 <= predicted < len(CLASS_NAMES):
-                predicted_label = CLASS_NAMES[predicted]
-            else:
-                predicted_label = predicted  # если API уже вернул строку
+            # Предсказанный класс
+            class_id = result.get("predicted_class", "unknown")
+            class_name = CLASS_NAMES.get(class_id, f"Unknown class: {class_id}")
 
             st.subheader("✅ Предсказанный класс:")
-            st.write(predicted_label)
+            st.write(class_name)
+
+            # Вероятности
+            raw_probs = result.get("probabilities", {})
+            readable_probs = {CLASS_NAMES.get(k, k): v for k, v in raw_probs.items()}
 
             st.subheader("📊 Распределение вероятностей:")
-            probs = result.get("probabilities", {})
             fig, ax = plt.subplots()
-            ax.bar(probs.keys(), probs.values(), color="skyblue")
+            ax.bar(readable_probs.keys(), readable_probs.values(), color="skyblue")
             ax.set_ylabel("Вероятность")
             ax.set_ylim([0, 1])
             st.pyplot(fig)
