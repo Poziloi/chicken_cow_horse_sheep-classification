@@ -23,8 +23,11 @@ async def predict(file: UploadFile = File(...)):
         predicted_label = label_binarizer.classes_[predicted_index]
 
         return JSONResponse({
-            "predicted_class": predicted_label,
-            "probabilities": dict(zip(label_binarizer.classes_, map(float, probs)))
+            "predicted_class": str(predicted_label),
+            "probabilities": {
+                str(label): float(prob) 
+                for label, prob in zip(label_binarizer.classes_, probs)
+            }
         })
 
     except Exception as e:
