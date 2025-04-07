@@ -6,9 +6,13 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 from streamlit_drawable_canvas import st_canvas
 
+# URL API
 API_URL = "https://chicken-cow-horse-sheep-classification.onrender.com/predict/"
 
-st.title("Классификация изображений")
+# Список читаемых меток классов
+CLASS_NAMES = ["chicken", "cow", "horse", "sheep"]
+
+st.title("🐔🐄🐎🐑 Классификация изображений животных")
 
 tab1, tab2 = st.tabs(["📷 Загрузить изображение", "✏️ Нарисовать изображение"])
 
@@ -29,6 +33,7 @@ with tab2:
         height=256,
         drawing_mode="freedraw",
         key="canvas",
+        update_streamlit=True
     )
 
     if canvas_result.image_data is not None:
@@ -36,10 +41,10 @@ with tab2:
         image = img
 
 if image:
-    st.image(image, caption="Входное изображение", use_column_width=True)
+    st.image(image, caption="Входное изображение", use_container_width=True)
 
     if st.button("Классифицировать"):
-        # Предобработка (ресайз, преобразование в байты)
+        # Предобработка: ресайз и преобразование в байты
         img_resized = image.resize((64, 64))
         buffered = BytesIO()
         img_resized.save(buffered, format="PNG")
@@ -51,11 +56,19 @@ if image:
 
         if response.status_code == 200:
             result = response.json()
+
+            # Получение метки класса
+            predicted = result.get("predicted_class")
+            if isinstance(predicted, int) and 0 <= predicted < len(CLASS_NAMES):
+                predicted_label = CLASS_NAMES[predicted]
+            else:
+                predicted_label = predicted  # если API уже вернул строку
+
             st.subheader("✅ Предсказанный класс:")
-            st.write(result["predicted_class"])
+            st.write(predicted_label)
 
             st.subheader("📊 Распределение вероятностей:")
-            probs = result["probabilities"]
+            probs = result.get("probabilities", {})
             fig, ax = plt.subplots()
             ax.bar(probs.keys(), probs.values(), color="skyblue")
             ax.set_ylabel("Вероятность")
