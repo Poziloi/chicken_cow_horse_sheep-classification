@@ -8,5 +8,6 @@ joblib
 tensorflow
 streamlit
 streamlit-drawable-canvas
+python-multipart
 requests
 matplotlib
